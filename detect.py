@@ -133,7 +133,7 @@ def detect(save_img=False):
             if frame % 100 == 0:
                 print(f'video {dataset.count + 1}/{dataset.nf} ({dataset.frame}/{dataset.nframes}) {dataset.files[dataset.count]}: ', end='', flush=True)
                 print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
-                with open(txt_path + '.txt', 'a') as f:
+                with open(txt_path, 'a') as f:
                     f.writelines(detection_lines)
                 del(detection_lines)
                 detection_lines = []
