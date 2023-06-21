@@ -67,6 +67,7 @@ def detect(save_img=False):
     old_img_b = 1
 
     t0 = time.time()
+    detection_lines = []
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -105,7 +106,7 @@ def detect(save_img=False):
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
-            txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
+            txt_path = str(save_dir / 'labels' / p.stem) + ('_results.txt')  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             if len(det):
                 # Rescale boxes from img_size to im0 size
@@ -121,16 +122,21 @@ def detect(save_img=False):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
-                        with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
+                        line_to_save = f"{frame} " + ('%g ' * len(line)).rstrip() % line + '\n'
+                        detection_lines.append(line_to_save)
 
                     if save_img or view_img:  # Add bbox to image
                         label = f'{names[int(cls)]} {conf:.2f}'
                         plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
 
             # Print time (inference + NMS)
-            print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
-
+            if frame % 100 == 0:
+                print(f'video {dataset.count + 1}/{dataset.nf} ({dataset.frame}/{dataset.nframes}) {dataset.files[dataset.count]}: ', end='', flush=True)
+                print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
+                with open(txt_path + '.txt', 'a') as f:
+                    f.writelines(detection_lines)
+                del(detection_lines)
+                detection_lines = []
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
@@ -157,8 +163,10 @@ def detect(save_img=False):
                     vid_writer.write(im0)
 
     if save_txt or save_img:
+        # with open(txt_path + '.txt', 'a') as f:
+                # f.writelines(detection_lines)
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-        #print(f"Results saved to {save_dir}{s}")
+        print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
 
