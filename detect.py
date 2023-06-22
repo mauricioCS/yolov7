@@ -144,6 +144,7 @@ def detect(save_img=False):
                     f.writelines(detection_lines)
                 del(detection_lines)
                 detection_lines = []
+
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
@@ -169,15 +170,18 @@ def detect(save_img=False):
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
 
+
+            if dataset.frame == dataset.nframes:
+                # Saving the last results:
+                with open(txt_path, 'a') as f:
+                    f.writelines(detection_lines)
+                print(f'video {dataset.count + 1}/{dataset.nf} ({dataset.frame}/{dataset.nframes}) {dataset.files[dataset.count]}: ', end='', flush=True)
+                print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
+
+                del(detection_lines)
+                detection_lines = []
+
     if save_txt or save_img:
-        # Saving the last results:
-        if detection_lines:
-            with open(txt_path, 'a') as f:
-                f.writelines(detection_lines)
-            print(f'video {dataset.count + 1}/{dataset.nf} ({dataset.frame}/{dataset.nframes}) {dataset.files[dataset.count]}: ', end='', flush=True)
-            print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
-            del(detection_lines)
-            detection_lines = []
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         print(f"Results saved to {save_dir}{s}")
 
