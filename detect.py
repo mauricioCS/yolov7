@@ -170,8 +170,12 @@ def detect(save_img=False):
                     vid_writer.write(im0)
 
     if save_txt or save_img:
-        # with open(txt_path + '.txt', 'a') as f:
-                # f.writelines(detection_lines)
+        # Saving the last results:
+        if detection_lines:
+            with open(txt_path, 'a') as f:
+                f.writelines(detection_lines)
+            del(detection_lines)
+            detection_lines = []
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         print(f"Results saved to {save_dir}{s}")
 
