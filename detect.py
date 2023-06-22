@@ -69,6 +69,9 @@ def detect(save_img=False):
     t0 = time.time()
     detection_lines = []
     for path, img, im0s, vid_cap in dataset:
+        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -121,8 +124,12 @@ def detect(save_img=False):
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                        xywh = [xywh[0]*w, xywh[1]*h, xywh[2]*w, xywh[3]*h]
+                        xywh = [round(value) for value in xywh]
+
                         line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
                         line_to_save = f"{frame} " + ('%g ' * len(line)).rstrip() % line + '\n'
+
                         detection_lines.append(line_to_save)
 
                     if save_img or view_img:  # Add bbox to image
@@ -154,8 +161,8 @@ def detect(save_img=False):
                             vid_writer.release()  # release previous video writer
                         if vid_cap:  # video
                             fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                            # w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                            # h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                             save_path += '.mp4'
