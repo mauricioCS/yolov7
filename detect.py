@@ -68,9 +68,12 @@ def detect(save_img=False):
 
     t0 = time.time()
     detection_lines = []
+    frame_rate = None
     for path, img, im0s, vid_cap in dataset:
         w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if vid_cap and not frame_rate:
+            frame_rate = vid_cap.get(cv2.CAP_PROP_FPS)
 
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -110,6 +113,7 @@ def detect(save_img=False):
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('_results.txt')  # img.txt
+
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             if len(det):
                 # Rescale boxes from img_size to im0 size
@@ -162,14 +166,11 @@ def detect(save_img=False):
                             vid_writer.release()  # release previous video writer
                         if vid_cap:  # video
                             fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            # w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            # h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
-
 
             if dataset.frame == dataset.nframes:
                 # Saving the last results:
@@ -182,6 +183,10 @@ def detect(save_img=False):
                 detection_lines = []
 
     if save_txt or save_img:
+        with open(txt_path, 'r+') as f:
+            content = f.read()
+            f.seek(0, 0)
+            f.write(f"{w} {h} {'' if not vid_cap else frame_rate}\n" + content)
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         print(f"Results saved to {save_dir}{s}")
 
